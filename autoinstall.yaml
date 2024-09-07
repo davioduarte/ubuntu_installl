@@ -1,4 +1,5 @@
 #cloud-config
+#https://raw.githubusercontent.com/davioduarte/ubuntu_installl/main/autoinstall.yaml
 autoinstall:
   version: 1
   locale: pt_BR.UTF-8
