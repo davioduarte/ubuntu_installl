@@ -1,50 +1,129 @@
 #cloud-config
 #https://raw.githubusercontent.com/davioduarte/ubuntu_installl/main/autoinstall.yaml
+# Defina a versão do autoinstall
+version: 1
+
+# O layout do teclado é pt-br (ABNT)
+keyboard:
+  layout: pt
+  variant: br
+
+# Definir hostname e configurações de usuário root (suporte)
+identity:
+  hostname: ubuntu
+  username: suporte
+  password: ""  # Senha vazia, para ser definida depois
+  # password deve ser um hash criptografado se precisar usar uma senha. Aqui, deixamos em branco.
+
+# Definir a configuração de rede
+network:
+  version: 2
+  ethernets:
+    eth0:
+      dhcp4: true
+
+# Definir as partições
+storage:
+  layout:
+    name: custom
+    match:
+      size: largest
+  swap:
+    size: 4096  # 4 GB de swap
+  # Definição manual das partições
+  config:
+    - id: disk-sda
+      ptable: gpt
+      path: /dev/sda
+      wipe: superblock-recursive
+      preserve: false
+      type: disk
+      grub_device: true
+      ptable: gpt
+      name: ''
+
+    # /boot partition
+    - id: partition-boot
+      type: partition
+      number: 1
+      size: 2048  # 2 GB
+      device: disk-sda
+      wipe: superblock
+      flag: boot
+      preserve: false
+      guid: ''
+
+    # Swap partition
+    - id: partition-swap
+      type: partition
+      number: 2
+      size: 4096  # 4 GB
+      device: disk-sda
+      wipe: superblock
+      preserve: false
+
+    # /tmp partition
+    - id: partition-tmp
+      type: partition
+      number: 5
+      size: 4096  # 4 GB
+      device: disk-sda
+      wipe: superblock
+      preserve: false
+
+    # LVM partitions
+    - id: partition-lvm1
+      type: partition
+      number: 6
+      size: 10240  # 10 GB
+      device: disk-sda
+      wipe: superblock
+      preserve: false
+
+    - id: partition-lvm2
+      type: partition
+      number: 7
+      size: 8192  # 8 GB
+      device: disk-sda
+      wipe: superblock
+      preserve: false
+
+    # /usr partition
+    - id: partition-usr
+      type: partition
+      number: 8
+      size: 8192  # 8 GB
+      device: disk-sda
+      wipe: superblock
+      preserve: false
+      label: USR
+      filesystem: xfs
+      mount: /usr
+
+    # Root partition - usar o restante do disco
+    - id: partition-root
+      type: partition
+      number: 9
+      size: -1  # Usar o restante do espaço
+      device: disk-sda
+      wipe: superblock
+      preserve: false
+      label: RAIZ
+      filesystem: btrfs
+      mount: /
+
+# Definir como lidar com pacotes snap
+snaplist:
+  - name: core
+  - name: gnome-3-28-1804
+  - name: gnome-calculator
+  - name: gnome-characters
+  - name: gnome-logs
+  - name: gnome-system-monitor
+
+# Configurar a inicialização automática e sem intervenção
 autoinstall:
   version: 1
-  locale: pt_BR.UTF-8
-  keyboard:
-    layout: 'br'
-    variant: 'abnt2'
-  storage:
-    layout:
-      name: custom
-    config:
-      - { ptable: gpt, path: /dev/sda, wipe: superblock-recursive, preserve: false, name: '', grub_device: true, type: disk, id: disk-sda }
-      - { device: disk-sda, size: 2G, flag: boot, name: '', type: partition, id: sda1 }
-      - { device: sda1, filesystem: ext4, mount: /boot, type: format, id: fs-boot }
+  interactive-sections: []
 
-      - { device: disk-sda, size: 4G, name: '', type: partition, id: sda2 }
-      - { device: sda2, size: 4G, type: linux-swap, id: fs-swap }
-
-      - { device: disk-sda, size: 4G, name: '', type: partition, id: sda5 }
-      - { device: sda5, filesystem: ext4, mount: /tmp, type: format, id: fs-tmp }
-
-      - { device: disk-sda, size: 10G, name: '', type: partition, id: sda6 }
-      - { name: 'lv-root', vg: 'vg0', size: 10G, type: logical_volume, id: lv-root }
-
-      - { device: disk-sda, size: 8G, name: '', type: partition, id: sda7 }
-      - { name: 'lv-home', vg: 'vg0', size: 8G, type: logical_volume, id: lv-home }
-
-      - { name: 'vg0', devices: [ sda6, sda7 ], type: volume_group, id: vg0 }
-
-      - { device: disk-sda, size: 8G, name: 'USR', type: partition, id: sda8 }
-      - { device: sda8, filesystem: xfs, mount: /usr, type: format, id: fs-usr }
-
-      - { device: disk-sda, size: -1, name: 'RAIZ', type: partition, id: sda9 }
-      - { device: sda9, filesystem: btrfs, mount: /, type: format, id: fs-root }
-
-  identity:
-    hostname: ubuntu-server
-    username: suporte
-    password: "$6$randomSalt$encryptedpasswordhere"  # Senha será alterada posteriormente.
-  ssh:
-    install-server: true
-    authorized-keys: []
-  packages:
-    - openssh-server
-    - vim
-  late-commands:
-    - curtin in-target --target=/target apt-get update
-    - curtin in-target --target=/target apt-get install -y curl
 
