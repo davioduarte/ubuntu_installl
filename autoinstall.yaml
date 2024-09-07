@@ -1,0 +1,49 @@
+#cloud-config
+autoinstall:
+  version: 1
+  locale: pt_BR.UTF-8
+  keyboard:
+    layout: 'br'
+    variant: 'abnt2'
+  storage:
+    layout:
+      name: custom
+    config:
+      - { ptable: gpt, path: /dev/sda, wipe: superblock-recursive, preserve: false, name: '', grub_device: true, type: disk, id: disk-sda }
+      - { device: disk-sda, size: 2G, flag: boot, name: '', type: partition, id: sda1 }
+      - { device: sda1, filesystem: ext4, mount: /boot, type: format, id: fs-boot }
+
+      - { device: disk-sda, size: 4G, name: '', type: partition, id: sda2 }
+      - { device: sda2, size: 4G, type: linux-swap, id: fs-swap }
+
+      - { device: disk-sda, size: 4G, name: '', type: partition, id: sda5 }
+      - { device: sda5, filesystem: ext4, mount: /tmp, type: format, id: fs-tmp }
+
+      - { device: disk-sda, size: 10G, name: '', type: partition, id: sda6 }
+      - { name: 'lv-root', vg: 'vg0', size: 10G, type: logical_volume, id: lv-root }
+
+      - { device: disk-sda, size: 8G, name: '', type: partition, id: sda7 }
+      - { name: 'lv-home', vg: 'vg0', size: 8G, type: logical_volume, id: lv-home }
+
+      - { name: 'vg0', devices: [ sda6, sda7 ], type: volume_group, id: vg0 }
+
+      - { device: disk-sda, size: 8G, name: 'USR', type: partition, id: sda8 }
+      - { device: sda8, filesystem: xfs, mount: /usr, type: format, id: fs-usr }
+
+      - { device: disk-sda, size: -1, name: 'RAIZ', type: partition, id: sda9 }
+      - { device: sda9, filesystem: btrfs, mount: /, type: format, id: fs-root }
+
+  identity:
+    hostname: ubuntu-server
+    username: suporte
+    password: "$6$randomSalt$encryptedpasswordhere"  # Senha será alterada posteriormente.
+  ssh:
+    install-server: true
+    authorized-keys: []
+  packages:
+    - openssh-server
+    - vim
+  late-commands:
+    - curtin in-target --target=/target apt-get update
+    - curtin in-target --target=/target apt-get install -y curl
+
